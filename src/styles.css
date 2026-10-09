@@ -286,6 +286,10 @@ textarea:focus-visible,
 .cabecera .boton.texto {
   color: #fff;
 }
+.columna-botones {
+  display: grid;
+  gap: 0.5rem;
+}
 .enlaces {
   display: flex;
   flex-wrap: wrap;

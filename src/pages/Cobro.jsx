@@ -5,7 +5,7 @@ import { useI18n } from '../i18n';
 import { soloDigitos } from '../lib/paises';
 import { Aviso, Campo, Cargando } from '../components/ui';
 
-const VACIO = { whatsapp: '', cuentaUY: '', cuentaBR: '', pixBR: '', precioMensual: 20, precioAnual: 120 };
+const VACIO = { whatsappUY: '', whatsappBR: '', whatsappAR: '', cuentaUY: '', cuentaBR: '', pixBR: '', precioMensual: 20, precioAnual: 120 };
 
 // Datos de cobro que ven las empresas en los botones de pago.
 export default function Cobro() {
@@ -34,7 +34,9 @@ export default function Cobro() {
     setMensaje({ tipo: 'ok', texto: '' });
     try {
       await setDoc(doc(db, 'plataforma', 'cobro'), {
-        whatsapp: soloDigitos(datos.whatsapp),
+        whatsappUY: soloDigitos(datos.whatsappUY),
+        whatsappBR: soloDigitos(datos.whatsappBR),
+        whatsappAR: soloDigitos(datos.whatsappAR),
         cuentaUY: datos.cuentaUY.trim(),
         cuentaBR: datos.cuentaBR.trim(),
         pixBR: datos.pixBR.trim(),
@@ -54,9 +56,15 @@ export default function Cobro() {
       <h1>{t('nav.billing')}</h1>
       <p className="suave">{t('admin.billingIntro')}</p>
       <form className="tarjeta formulario" onSubmit={guardar}>
-        <Campo etiqueta={t('admin.supportWhatsapp')}>
-          <input inputMode="numeric" value={datos.whatsapp} onChange={cambiar('whatsapp')} placeholder="59899123456" />
-        </Campo>
+        {[
+          ['UY', '59895205598'],
+          ['BR', '5553999265575'],
+          ['AR', '5491171827254'],
+        ].map(([pais, ejemplo]) => (
+          <Campo key={pais} etiqueta={t('admin.whatsappCountry', { pais: t(`country.${pais}`) })}>
+            <input inputMode="numeric" value={datos[`whatsapp${pais}`]} onChange={cambiar(`whatsapp${pais}`)} placeholder={ejemplo} />
+          </Campo>
+        ))}
         <Campo etiqueta={t('admin.accountUY')}>
           <textarea rows={4} value={datos.cuentaUY} onChange={cambiar('cuentaUY')} />
         </Campo>

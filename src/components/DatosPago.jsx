@@ -33,7 +33,14 @@ export default function DatosPago({ empresa }) {
   if (empresa?.pais !== 'BR') opciones.sort((a, b) => (a.clave === 'uy' ? -1 : b.clave === 'uy' ? 1 : 0));
 
   const plan = t(`plan.${empresa?.plan === 'anual' ? 'anual' : 'mensual'}`);
-  const comprobante = enlaceWhatsapp(cobro?.whatsapp, t('pay.proofText', { empresa: empresa?.nombre || '', plan }));
+  const mensaje = t('pay.proofText', { empresa: empresa?.nombre || '', plan });
+  // Un botón de WhatsApp por país; el de la empresa va primero.
+  // `whatsapp` es el campo viejo (un solo número) y queda como respaldo.
+  const whatsapps = ['UY', 'BR', 'AR']
+    .map((pais) => ({ pais, numero: cobro?.[`whatsapp${pais}`] }))
+    .filter((w) => w.numero);
+  if (whatsapps.length === 0 && cobro?.whatsapp) whatsapps.push({ pais: null, numero: cobro.whatsapp });
+  whatsapps.sort((a, b) => (b.pais === empresa?.pais) - (a.pais === empresa?.pais));
 
   return (
     <section className="tarjeta">
@@ -54,10 +61,14 @@ export default function DatosPago({ empresa }) {
         </div>
       ))}
 
-      {comprobante && (
-        <a className="boton" href={comprobante} target="_blank" rel="noreferrer">
-          {t('pay.sendProof')}
-        </a>
+      {whatsapps.length > 0 && (
+        <div className="columna-botones">
+          {whatsapps.map((w) => (
+            <a key={w.pais || 'unico'} className="boton" href={enlaceWhatsapp(w.numero, mensaje)} target="_blank" rel="noreferrer">
+              {w.pais ? t('pay.sendProofTo', { pais: t(`country.${w.pais}`) }) : t('pay.sendProof')}
+            </a>
+          ))}
+        </div>
       )}
     </section>
   );
