@@ -1,0 +1,121 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funciones auxiliares ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function miPerfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function isSuper() {
+      return signedIn() && miPerfil().rol == 'superadmin';
+    }
+
+    function enEmpresa(empresaId) {
+      return signedIn() && miPerfil().empresaId == empresaId && miPerfil().activo == true;
+    }
+
+    function rolEn(empresaId, roles) {
+      return enEmpresa(empresaId) && miPerfil().rol in roles;
+    }
+
+    // ---------- Perfiles de usuario (equipo y superadmin) ----------
+    match /usuarios/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isSuper()
+                    || rolEn(resource.data.empresaId, ['dueno', 'admin']));
+      allow list: if signedIn() && (isSuper()
+                    || rolEn(resource.data.empresaId, ['dueno', 'admin']));
+
+      // Alta del dueño al crear su empresa (en el mismo lote que la empresa).
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo', 'creadoEn'])
+        && request.resource.data.rol == 'dueno'
+        && request.resource.data.activo == true
+        && getAfter(/databases/$(database)/documents/empresas/$(request.resource.data.empresaId)).data.ownerUid == uid;
+
+      // Alta de un integrante que fue invitado por email.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo', 'creadoEn'])
+        && request.resource.data.activo == true
+        && request.auth.token.email_verified == true
+        && request.resource.data.email == request.auth.token.email.lower()
+        && exists(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower()))
+        && get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.empresaId == request.resource.data.empresaId
+        && get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.rol == request.resource.data.rol;
+
+      // Cada persona edita solo su nombre e idioma.
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'idioma']);
+
+      // El dueño gestiona a los demás: activar, desactivar y cambiar rol (nunca a otro dueño).
+      allow update: if signedIn() && rolEn(resource.data.empresaId, ['dueno'])
+        && resource.data.rol != 'dueno'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rol', 'activo'])
+        && request.resource.data.rol in ['admin', 'empleado'];
+    }
+
+    // ---------- Invitaciones (id = email en minúsculas) ----------
+    match /invitaciones/{email} {
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'creadaEn'])
+        && request.resource.data.rol in ['admin', 'empleado']
+        && rolEn(request.resource.data.empresaId, ['dueno', 'admin']);
+      allow get: if signedIn() && (request.auth.token.email.lower() == email
+                    || rolEn(resource.data.empresaId, ['dueno', 'admin']));
+      allow list: if signedIn() && rolEn(resource.data.empresaId, ['dueno', 'admin']);
+      allow delete: if signedIn() && (request.auth.token.email.lower() == email
+                    || rolEn(resource.data.empresaId, ['dueno', 'admin']));
+    }
+
+    // ---------- Empresas ----------
+    match /empresas/{empresaId} {
+      allow read: if signedIn() && (isSuper() || enEmpresa(empresaId));
+
+      // Una empresa nueva siempre nace en prueba, con no más de 31 días.
+      // Requiere email verificado (evita altas masivas con correos ajenos) y solo
+      // admite los campos esperados.
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['nombre', 'vertical', 'pais', 'moneda', 'zonaHoraria',
+             'idiomaDefecto', 'whatsapp', 'marca', 'plan', 'estado', 'finPrueba', 'venceEl', 'ownerUid', 'creadoEn'])
+        && request.resource.data.moneda in ['UYU', 'ARS', 'BRL']
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.estado == 'prueba'
+        && request.resource.data.plan == 'prueba'
+        && request.resource.data.venceEl == null
+        && request.resource.data.finPrueba <= request.time + duration.value(31, 'd')
+        && request.resource.data.vertical in ['pasteleria', 'seguridad']
+        && request.resource.data.pais in ['UY', 'AR', 'BR'];
+
+      // El dueño y el administrador editan solo datos del negocio, nunca el plan.
+      allow update: if signedIn() && rolEn(empresaId, ['dueno', 'admin'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['nombre', 'whatsapp', 'marca', 'idiomaDefecto', 'zonaHoraria']);
+
+      // El superadmin gestiona plan, estado y vencimientos.
+      allow update: if isSuper();
+    }
+
+    // Todo lo que cuelga de una empresa (productos, pedidos, stock...) se define
+    // en las fases siguientes. Mientras tanto queda cerrado.
+    match /empresas/{empresaId}/{documento=**} {
+      allow read, write: if false;
+    }
+
+    // ---------- Datos de la plataforma ----------
+    match /plataforma/cobro {
+      allow read: if signedIn();
+      allow write: if isSuper();
+    }
+
+    match /pagos/{pagoId} {
+      allow read, create: if isSuper();
+      allow update, delete: if false;
+    }
+  }
+}

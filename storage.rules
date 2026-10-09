@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function perfil() {
+      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function esEquipo(empresaId) {
+      return request.auth != null
+        && perfil().empresaId == empresaId
+        && perfil().activo == true
+        && perfil().rol in ['dueno', 'admin', 'empleado'];
+    }
+
+    // Marca de la empresa (logo): la ven todos (el catálogo es público), la editan dueño y admin.
+    match /empresas/{empresaId}/marca/{archivo} {
+      allow read: if true;
+      allow write: if esEquipo(empresaId)
+        && perfil().rol in ['dueno', 'admin']
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if esEquipo(empresaId) && perfil().rol in ['dueno', 'admin'];
+    }
+
+    // Resto de carpetas. Las reglas que coinciden se SUMAN (OR), por eso la carpeta
+    // 'marca' se excluye acá: si no, un empleado podría cambiar el logo.
+    // Solo 'catalogo' es de lectura pública; todo lo demás (por ejemplo evidencia de
+    // incidentes de seguridad) lo lee únicamente el equipo de la empresa.
+    match /empresas/{empresaId}/{carpeta}/{archivo=**} {
+      allow read: if carpeta == 'catalogo' || esEquipo(empresaId);
+      allow write: if carpeta != 'marca' && esEquipo(empresaId)
+        && (
+          (request.resource.contentType.matches('image/.*') && request.resource.size < 5 * 1024 * 1024)
+          || (request.resource.contentType.matches('video/.*') && request.resource.size < 50 * 1024 * 1024)
+        );
+      allow delete: if carpeta != 'marca' && esEquipo(empresaId);
+    }
+  }
+}
