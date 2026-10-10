@@ -4,7 +4,8 @@ import { db } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useI18n } from '../i18n';
 import { PAISES, VERTICALES, soloDigitos } from '../lib/paises';
-import { Aviso, Campo, Cargando, SelectorIdioma } from '../components/ui';
+import { TERMINOS_VERSION } from '../legal/index.js';
+import { Aviso, Campo, CasillaTerminos, Cargando, SelectorIdioma } from '../components/ui';
 
 const DIAS_PRUEBA = 30;
 
@@ -22,6 +23,7 @@ export default function Onboarding() {
   const [vertical, setVertical] = useState(VERTICALES[0]);
   const [pais, setPais] = useState('UY');
   const [whatsapp, setWhatsapp] = useState('');
+  const [acepto, setAcepto] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -52,6 +54,8 @@ export default function Onboarding() {
         email: correo,
         idioma: lang,
         activo: true,
+        terminosVersion: TERMINOS_VERSION,
+        terminosEn: serverTimestamp(),
         creadoEn: serverTimestamp(),
       });
       lote.delete(doc(db, 'invitaciones', correo));
@@ -96,6 +100,8 @@ export default function Onboarding() {
         email: correo,
         idioma: lang,
         activo: true,
+        terminosVersion: TERMINOS_VERSION,
+        terminosEn: serverTimestamp(),
         creadoEn: serverTimestamp(),
       });
       await lote.commit();
@@ -117,8 +123,9 @@ export default function Onboarding() {
         <section className="tarjeta formulario">
           <h1>{t('join.title')}</h1>
           <p>{t('join.text', { rol: t(`role.${invitacion.rol}`) })}</p>
+          <CasillaTerminos valor={acepto} onChange={setAcepto} />
           <Aviso tipo="error">{error}</Aviso>
-          <button className="boton" onClick={unirse} disabled={ocupado}>
+          <button className="boton" onClick={unirse} disabled={ocupado || !acepto}>
             {t('join.btn')}
           </button>
           <button className="boton texto" onClick={salir}>
@@ -163,8 +170,9 @@ export default function Onboarding() {
             />
           </Campo>
 
+          <CasillaTerminos valor={acepto} onChange={setAcepto} />
           <Aviso tipo="error">{error}</Aviso>
-          <button className="boton" disabled={ocupado}>
+          <button className="boton" disabled={ocupado || !acepto}>
             {t('company.create')}
           </button>
           <button type="button" className="boton texto" onClick={salir}>

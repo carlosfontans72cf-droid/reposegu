@@ -2,8 +2,15 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import es from './es';
 import pt from './pt';
 import en from './en';
+import pastelEs from './pastel.es';
+import pastelPt from './pastel.pt';
+import pastelEn from './pastel.en';
 
-const DICT = { es, pt, en };
+const DICT = {
+  es: { ...es, ...pastelEs },
+  pt: { ...pt, ...pastelPt },
+  en: { ...en, ...pastelEn },
+};
 const CLAVE = 'idioma';
 
 function idiomaInicial() {

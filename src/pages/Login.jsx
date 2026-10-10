@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useI18n } from '../i18n';
-import { Aviso, Campo, SelectorIdioma } from '../components/ui';
+import { Aviso, AvisoTerminos, Campo, PieLegal, SelectorIdioma } from '../components/ui';
 
 export default function Login() {
   const { t, lang } = useI18n();
@@ -89,6 +89,7 @@ export default function Login() {
           </Campo>
         )}
 
+        {modo === 'signup' && <AvisoTerminos />}
         <Aviso tipo="error">{error}</Aviso>
         <Aviso>{ok}</Aviso>
 
@@ -113,6 +114,7 @@ export default function Login() {
             </button>
           )}
         </div>
+        <PieLegal />
       </form>
     </div>
   );

@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { DatosProvider } from '../data/DatosProvider';
 import { useI18n } from '../i18n';
 import { estadoSuscripcion } from '../lib/suscripcion';
-import { SelectorIdioma } from './ui';
+import CatalogoSync from './CatalogoSync';
+import { PieLegal, SelectorIdioma } from './ui';
 
 const COLOR_BASE = '#8a3b5c';
 
@@ -10,6 +12,8 @@ export default function Layout() {
   const { perfil, empresa, salir } = useAuth();
   const { t } = useI18n();
   const esSuper = perfil.rol === 'superadmin';
+  const esPasteleria = !esSuper && empresa?.vertical === 'pasteleria';
+  const esGestor = perfil.rol === 'dueno' || perfil.rol === 'admin';
   const sus = estadoSuscripcion(empresa);
   const color = empresa?.marca?.colorPrimario || COLOR_BASE;
   const logo = empresa?.marca?.logoUrl;
@@ -21,20 +25,29 @@ export default function Layout() {
       ['/cobro', 'nav.billing'],
       ['/ajustes', 'nav.settings'],
     ];
-  } else if (perfil.rol === 'empleado') {
+  } else if (esPasteleria) {
     enlaces = [
       ['/', 'nav.home'],
-      ['/ajustes', 'nav.settings'],
+      ['/pedidos', 'nav.orders'],
+      ['/entregas', 'nav.deliveries'],
+      ['/productos', 'nav.products'],
+      ['/stock', 'nav.stock'],
+      ['/mas', 'nav.more'],
     ];
-  } else {
+  } else if (esGestor) {
     enlaces = [
       ['/', 'nav.home'],
       ['/equipo', 'nav.team'],
       ['/ajustes', 'nav.settings'],
     ];
+  } else {
+    enlaces = [
+      ['/', 'nav.home'],
+      ['/ajustes', 'nav.settings'],
+    ];
   }
 
-  return (
+  const contenido = (
     <div className="app" style={{ '--marca': color }}>
       <header className="cabecera">
         <div className="marca">
@@ -57,15 +70,20 @@ export default function Layout() {
 
       <main className="contenido">
         <Outlet />
+        <PieLegal />
       </main>
 
-      <nav className="navegacion" aria-label="Principal">
+      <nav className={`navegacion ${enlaces.length > 4 ? 'compacta' : ''}`} aria-label="Principal">
         {enlaces.map(([ruta, clave]) => (
           <NavLink key={ruta} to={ruta} end={ruta === '/'} className={({ isActive }) => (isActive ? 'activo' : '')}>
             {t(clave)}
           </NavLink>
         ))}
       </nav>
+      {esPasteleria && <CatalogoSync />}
     </div>
   );
+
+  // Los datos de la pastelería se escuchan una sola vez para todas las pantallas.
+  return esPasteleria ? <DatosProvider>{contenido}</DatosProvider> : contenido;
 }

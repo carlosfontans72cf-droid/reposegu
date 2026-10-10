@@ -62,6 +62,60 @@ export function SelectorIdioma() {
   );
 }
 
+// Reemplaza {terminos} y {privacidad} de un texto por enlaces.
+function conEnlaces(texto, enlaces) {
+  return texto.split(/(\{terminos\}|\{privacidad\})/).map((parte, i) => {
+    if (parte === '{terminos}') return <span key={i}>{enlaces.terminos}</span>;
+    if (parte === '{privacidad}') return <span key={i}>{enlaces.privacidad}</span>;
+    return parte;
+  });
+}
+
+const enlacesLegales = (t) => ({
+  terminos: (
+    <a href="/terminos" target="_blank" rel="noreferrer">
+      {t('legal.terms')}
+    </a>
+  ),
+  privacidad: (
+    <a href="/privacidad" target="_blank" rel="noreferrer">
+      {t('legal.privacy')}
+    </a>
+  ),
+});
+
+// Casilla obligatoria de aceptación.
+export function CasillaTerminos({ valor, onChange }) {
+  const { t } = useI18n();
+  return (
+    <label className="fila casilla">
+      <input type="checkbox" checked={valor} onChange={(e) => onChange(e.target.checked)} required />
+      <span>{conEnlaces(t('legal.accept'), enlacesLegales(t))}</span>
+    </label>
+  );
+}
+
+// Aviso de aceptación implícita (pantalla de registro).
+export function AvisoTerminos() {
+  const { t } = useI18n();
+  return <p className="suave aviso-legal">{conEnlaces(t('legal.signupNotice'), enlacesLegales(t))}</p>;
+}
+
+export function PieLegal() {
+  const { t } = useI18n();
+  return (
+    <p className="suave pie-legal">
+      <a href="/terminos" target="_blank" rel="noreferrer">
+        {t('legal.terms')}
+      </a>
+      {' · '}
+      <a href="/privacidad" target="_blank" rel="noreferrer">
+        {t('legal.privacy')}
+      </a>
+    </p>
+  );
+}
+
 export function useCopiar() {
   const { t } = useI18n();
   const [copiado, setCopiado] = useState('');

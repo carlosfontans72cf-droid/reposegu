@@ -33,14 +33,18 @@ service cloud.firestore {
 
       // Alta del dueño al crear su empresa (en el mismo lote que la empresa).
       allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo', 'creadoEn'])
+        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo', 'creadoEn', 'terminosVersion', 'terminosEn'])
+        && request.resource.data.terminosVersion is string
+        && request.resource.data.terminosEn == request.time
         && request.resource.data.rol == 'dueno'
         && request.resource.data.activo == true
         && getAfter(/databases/$(database)/documents/empresas/$(request.resource.data.empresaId)).data.ownerUid == uid;
 
       // Alta de un integrante que fue invitado por email.
       allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo', 'creadoEn'])
+        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo', 'creadoEn', 'terminosVersion', 'terminosEn'])
+        && request.resource.data.terminosVersion is string
+        && request.resource.data.terminosEn == request.time
         && request.resource.data.activo == true
         && request.auth.token.email_verified == true
         && request.resource.data.email == request.auth.token.email.lower()
@@ -48,9 +52,9 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.empresaId == request.resource.data.empresaId
         && get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.rol == request.resource.data.rol;
 
-      // Cada persona edita solo su nombre e idioma.
+      // Cada persona edita solo su nombre e idioma, y acepta los términos vigentes.
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'idioma']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'idioma', 'terminosVersion', 'terminosEn']);
 
       // El dueño gestiona a los demás: activar, desactivar y cambiar rol (nunca a otro dueño).
       allow update: if signedIn() && rolEn(resource.data.empresaId, ['dueno'])
@@ -101,10 +105,64 @@ service cloud.firestore {
       allow update: if isSuper();
     }
 
-    // Todo lo que cuelga de una empresa (productos, pedidos, stock...) se define
-    // en las fases siguientes. Mientras tanto queda cerrado.
-    match /empresas/{empresaId}/{documento=**} {
-      allow read, write: if false;
+    // ---------- Módulos de la pastelería (todo cuelga de la empresa) ----------
+    // Cualquier otra subcolección queda cerrada: no hay regla que la habilite.
+    function esGestor(empresaId) {
+      return rolEn(empresaId, ['dueno', 'admin']);
+    }
+
+    // Productos y recetas: los ve el equipo, los edita dueño y administrador.
+    match /empresas/{empresaId}/productos/{id} {
+      allow read: if enEmpresa(empresaId);
+      allow create, update, delete: if esGestor(empresaId);
+    }
+
+    // Insumos (stock): el empleado solo puede ajustar la cantidad en stock.
+    match /empresas/{empresaId}/insumos/{id} {
+      allow read: if enEmpresa(empresaId);
+      allow create, delete: if esGestor(empresaId);
+      allow update: if esGestor(empresaId)
+        || (enEmpresa(empresaId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
+    }
+
+    match /empresas/{empresaId}/clientes/{id} {
+      allow read, create, update: if enEmpresa(empresaId);
+      allow delete: if esGestor(empresaId);
+    }
+
+    match /empresas/{empresaId}/pedidos/{id} {
+      allow read, create, update: if enEmpresa(empresaId)
+        && request.resource.data.estado in ['nuevo', 'confirmado', 'preparacion', 'listo', 'entregado', 'cancelado'];
+      allow delete: if esGestor(empresaId);
+    }
+
+    match /empresas/{empresaId}/zonas/{id} {
+      allow read: if enEmpresa(empresaId);
+      allow create, update, delete: if esGestor(empresaId);
+    }
+
+    // Contador de pedidos: solo puede crearse en 1 o subir de a uno.
+    match /empresas/{empresaId}/config/pedidos {
+      allow read: if enEmpresa(empresaId);
+      allow create: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['ultimo'])
+        && request.resource.data.ultimo == 1;
+      allow update: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['ultimo'])
+        && request.resource.data.ultimo == resource.data.ultimo + 1;
+    }
+
+    // ---------- Catálogo público (lo ve cualquiera, sin cuenta) ----------
+    // Es una copia mínima: nombre, contacto, color y los productos visibles.
+    // Nunca lleva recetas, costos ni stock.
+    match /catalogos/{empresaId} {
+      allow read: if true;
+      allow create, update: if esGestor(empresaId)
+        && request.resource.data.keys().hasOnly(['nombre', 'whatsapp', 'color', 'logoUrl', 'moneda',
+             'pais', 'idioma', 'items', 'actualizadoEn'])
+        && (!('items' in request.resource.data) || request.resource.data.items.size() <= 300);
+      allow delete: if esGestor(empresaId);
     }
 
     // ---------- Datos de la plataforma ----------
