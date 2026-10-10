@@ -132,7 +132,8 @@ service cloud.firestore {
     }
 
     match /empresas/{empresaId}/pedidos/{id} {
-      allow read, create, update: if enEmpresa(empresaId)
+      allow read: if enEmpresa(empresaId);
+      allow create, update: if enEmpresa(empresaId)
         && request.resource.data.estado in ['nuevo', 'confirmado', 'preparacion', 'listo', 'entregado', 'cancelado'];
       allow delete: if esGestor(empresaId);
     }
