@@ -44,4 +44,6 @@ export default {
   'access.cargos.remove': 'Remove',
   'access.cargos.min': 'Keep at least one title.',
   'access.cargos.saved': 'Titles saved.',
+  'access.tab.email': 'Email',
+  'access.tab.code': 'Code',
 };

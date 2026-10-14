@@ -36,6 +36,7 @@ import CatalogoPublico from './pages/CatalogoPublico';
 import Legal from './pages/Legal';
 import AceptarTerminos from './pages/AceptarTerminos';
 import SesionAbierta from './pages/SesionAbierta';
+import { esEmailAcceso } from './lib/acceso.js';
 import { TERMINOS_VERSION } from './legal/index.js';
 
 export default function App() {
@@ -70,7 +71,8 @@ function Privada() {
   if (!user) return <Login />;
   if (conflicto) return <SesionAbierta onSeguir={() => setConflicto(false)} />;
   if (!verificado) return <Verificar />;
-  if (!perfil) return <Onboarding />;
+  // Una cuenta por código no crea empresas: si no tiene perfil, su acceso no está activo.
+  if (!perfil) return esEmailAcceso(user.email) ? <Desactivado error /> : <Onboarding />;
   if (perfil.activo === false) return <Desactivado />;
 
   const esSuper = perfil.rol === 'superadmin';

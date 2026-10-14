@@ -44,4 +44,6 @@ export default {
   'access.cargos.remove': 'Remover',
   'access.cargos.min': 'Deixe pelo menos um cargo.',
   'access.cargos.saved': 'Cargos salvos.',
+  'access.tab.email': 'Email',
+  'access.tab.code': 'Código',
 };

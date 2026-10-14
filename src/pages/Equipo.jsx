@@ -103,7 +103,7 @@ export default function Equipo() {
     }
   };
 
-  const urlAcceso = (nombre) => `${window.location.origin}/?acceso=1&n=${encodeURIComponent(nombre)}`;
+  const urlAcceso = () => window.location.origin;
   const mensajeAcceso = (a) =>
     t('access.msg', { nombre: a.nombre, empresa: empresa.nombre, url: urlAcceso(a.nombre), codigo: formatearCodigo(a.codigo) });
   const enlaceWhatsApp = (texto, tel) => {

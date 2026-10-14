@@ -914,3 +914,6 @@ a.boton:not(.secundario):not(.texto):hover { filter: brightness(1.08); }
 .chips { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin: 0.4rem 0; }
 .chip { display: inline-flex; align-items: center; gap: 0.1rem; padding: 0.15rem 0.2rem 0.15rem 0.7rem; border: 1px solid var(--borde, #d9cfc7); border-radius: 999px; background: #fff; }
 .chip .boton { padding: 0.1rem 0.5rem; min-height: 0; }
+.pestanas { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; background: #eee7e0; padding: 0.25rem; border-radius: 0.7rem; margin: 0.2rem 0 0.4rem; }
+.pestanas button { border: 0; background: transparent; padding: 0.6rem 0.4rem; border-radius: 0.5rem; font: inherit; font-weight: 600; color: inherit; cursor: pointer; }
+.pestanas button.activa { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }

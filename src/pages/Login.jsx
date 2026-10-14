@@ -15,7 +15,14 @@ export default function Login() {
   const { t, lang } = useI18n();
   // El enlace que se manda por WhatsApp abre directo "entrar con código" con el nombre cargado.
   const params = new URLSearchParams(window.location.search);
-  const [modo, setModo] = useState(params.get('acceso') ? 'codigo' : 'login'); // login | codigo | signup | reset
+  const guardado = (() => {
+    try {
+      return localStorage.getItem('modoLogin');
+    } catch {
+      return null;
+    }
+  })();
+  const [modo, setModo] = useState(params.get('acceso') || guardado === 'codigo' ? 'codigo' : 'login'); // login | codigo | signup | reset
   const [nombre, setNombre] = useState(params.get('n') || '');
   const [codigo, setCodigo] = useState('');
   const [email, setEmail] = useState('');
@@ -46,6 +53,11 @@ export default function Login() {
         }
         try {
           await signInWithEmailAndPassword(auth, cred.email, cred.clave);
+          try {
+            localStorage.setItem('modoLogin', 'codigo');
+          } catch {
+            /* sin almacenamiento: no se recuerda */
+          }
         } catch (e) {
           const c = e?.code || '';
           setError(
@@ -56,6 +68,11 @@ export default function Login() {
         }
       } else if (modo === 'login') {
         await signInWithEmailAndPassword(auth, correo, clave);
+        try {
+          localStorage.setItem('modoLogin', 'login');
+        } catch {
+          /* sin almacenamiento: no se recuerda */
+        }
       } else if (modo === 'signup') {
         if (esEmailAcceso(correo)) {
           setError(t('auth.err.invalid-email'));
@@ -88,6 +105,16 @@ export default function Login() {
       </div>
       <form className="tarjeta formulario" onSubmit={enviar}>
         <h1>{t('app.name')}</h1>
+        {(modo === 'login' || modo === 'codigo') && (
+          <div className="pestanas" role="tablist">
+            <button type="button" role="tab" aria-selected={modo === 'login'} className={modo === 'login' ? 'activa' : ''} onClick={() => cambiar('login')}>
+              {t('access.tab.email')}
+            </button>
+            <button type="button" role="tab" aria-selected={modo === 'codigo'} className={modo === 'codigo' ? 'activa' : ''} onClick={() => cambiar('codigo')}>
+              {t('access.tab.code')}
+            </button>
+          </div>
+        )}
         <h2>
           {modo === 'codigo' ? t('access.login.title') : modo === 'signup' ? t('auth.signup') : modo === 'reset' ? t('auth.forgot') : t('auth.login')}
         </h2>
@@ -149,9 +176,6 @@ export default function Login() {
         <div className="enlaces">
           {modo === 'login' && (
             <>
-              <button type="button" className="boton texto" onClick={() => cambiar('codigo')}>
-                {t('access.login.link')}
-              </button>
               <button type="button" className="boton texto" onClick={() => cambiar('signup')}>
                 {t('auth.noAccount')}
               </button>
@@ -160,9 +184,9 @@ export default function Login() {
               </button>
             </>
           )}
-          {modo !== 'login' && (
+          {(modo === 'signup' || modo === 'reset') && (
             <button type="button" className="boton texto" onClick={() => cambiar('login')}>
-              {modo === 'codigo' ? t('access.login.email') : t('auth.haveAccount')}
+              {t('auth.haveAccount')}
             </button>
           )}
         </div>
