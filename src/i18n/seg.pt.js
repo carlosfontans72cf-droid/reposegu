@@ -116,6 +116,10 @@ export default {
 
   'seg.shift.title': 'Escalas',
   'seg.shift.new': 'Nova escala',
+  'seg.start.title': 'Primeiros passos',
+  'seg.start.posts': '1. Cadastre um posto (o local ou evento a vigiar)',
+  'seg.start.guards': '2. Convide seus vigilantes (papel Funcionário) em Equipe',
+  'seg.start.shifts': '3. Monte o turno: posto, horário, quantos vigilantes e quais',
   'seg.shift.needPosts': 'Primeiro cadastre pelo menos um posto.',
   'seg.shift.prevDay': 'Dia anterior',
   'seg.shift.nextDay': 'Dia seguinte',

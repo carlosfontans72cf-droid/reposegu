@@ -116,6 +116,10 @@ export default {
 
   'seg.shift.title': 'Shifts',
   'seg.shift.new': 'New shift',
+  'seg.start.title': 'Getting started',
+  'seg.start.posts': '1. Add a post (the site or event to guard)',
+  'seg.start.guards': '2. Invite your guards (Employee role) from Team',
+  'seg.start.shifts': '3. Build the shift: post, time, how many guards and who',
   'seg.shift.needPosts': 'Add at least one post first.',
   'seg.shift.prevDay': 'Previous day',
   'seg.shift.nextDay': 'Next day',

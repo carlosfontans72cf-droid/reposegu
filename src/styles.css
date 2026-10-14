@@ -906,3 +906,4 @@ fieldset.receta legend {
 .alertas-globales .alerta .boton { white-space: nowrap; padding: 0.45rem 0.7rem; min-height: 0; font-size: 0.85rem; }
 /* El botón SOS flotante no tapa el último contenido */
 .principal, main { padding-bottom: max(7.5rem, env(safe-area-inset-bottom)); }
+.pasos { margin: 0.4rem 0 0; padding-left: 0; list-style: none; display: grid; gap: 0.5rem; }

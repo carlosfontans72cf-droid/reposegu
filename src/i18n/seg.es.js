@@ -116,6 +116,10 @@ export default {
 
   'seg.shift.title': 'Turnos',
   'seg.shift.new': 'Nuevo turno',
+  'seg.start.title': 'Primeros pasos',
+  'seg.start.posts': '1. Cargá un puesto (el lugar o evento a cuidar)',
+  'seg.start.guards': '2. Invitá a tus guardias (rol Empleado) desde Equipo',
+  'seg.start.shifts': '3. Armá el turno: puesto, horario, cuántos guardias y quiénes',
   'seg.shift.needPosts': 'Primero cargá al menos un puesto.',
   'seg.shift.prevDay': 'Día anterior',
   'seg.shift.nextDay': 'Día siguiente',
