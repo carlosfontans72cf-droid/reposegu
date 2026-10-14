@@ -106,7 +106,7 @@ service cloud.firestore {
     }
 
     // ---------- Módulos de la pastelería (todo cuelga de la empresa) ----------
-    // Cualquier otra subcolección queda cerrada: no hay regla que la habilite.
+    // Cualquier subcolección sin regla propia queda cerrada.
     function esGestor(empresaId) {
       return rolEn(empresaId, ['dueno', 'admin']);
     }
@@ -152,6 +152,165 @@ service cloud.firestore {
       allow update: if enEmpresa(empresaId)
         && request.resource.data.keys().hasOnly(['ultimo'])
         && request.resource.data.ultimo == resource.data.ultimo + 1;
+    }
+
+    // ---------- Módulos de seguridad (todo cuelga de la empresa) ----------
+    // Dueño y administrador ven y gestionan todo. El guardia (empleado) solo ve lo suyo
+    // y solo puede crear sus propios registros, con la hora puesta por el servidor.
+    function esYo(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function esMio(empresaId) {
+      return enEmpresa(empresaId) && request.auth.uid == resource.data.uid;
+    }
+
+    match /empresas/{empresaId}/puestos/{id} {
+      allow read: if enEmpresa(empresaId);
+      allow create, update, delete: if esGestor(empresaId);
+    }
+
+    // Personal: la ficha tiene el mismo id que el usuario. El guardia lee la suya.
+    match /empresas/{empresaId}/personal/{uid} {
+      allow read: if esGestor(empresaId) || (enEmpresa(empresaId) && esYo(uid));
+      allow create, update, delete: if esGestor(empresaId);
+    }
+
+    // Turnos: el guardia solo ve los turnos donde está asignado.
+    match /empresas/{empresaId}/turnos/{id} {
+      allow read: if esGestor(empresaId)
+        || (enEmpresa(empresaId) && request.auth.uid in resource.data.guardias);
+      allow create, update: if esGestor(empresaId)
+        && request.resource.data.keys().hasOnly(['puestoId', 'puestoNombre', 'inicio', 'fin',
+             'requeridos', 'guardias', 'notas', 'creadoEn'])
+        && request.resource.data.guardias.size() <= 500;
+      allow delete: if esGestor(empresaId);
+    }
+
+    // Asistencia: el guardia marca su propia entrada y cierra su propia salida.
+    match /empresas/{empresaId}/asistencias/{id} {
+      allow read: if esGestor(empresaId) || esMio(empresaId);
+      allow create: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['uid', 'nombre', 'turnoId', 'puestoId', 'puestoNombre',
+             'turnoInicio', 'entrada', 'entradaPos', 'salida', 'salidaPos', 'abierta'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.entrada == request.time
+        && request.resource.data.abierta == true
+        && request.resource.data.salida == null;
+      allow update: if enEmpresa(empresaId)
+        && resource.data.uid == request.auth.uid
+        && resource.data.abierta == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['salida', 'salidaPos', 'abierta'])
+        && request.resource.data.abierta == false
+        && request.resource.data.salida == request.time;
+      allow delete: if esGestor(empresaId);
+    }
+
+    // Rondas: el guardia las inicia, marca puntos y las termina.
+    match /empresas/{empresaId}/rondas/{id} {
+      allow read: if esGestor(empresaId) || esMio(empresaId);
+      allow create: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['uid', 'nombre', 'puestoId', 'puestoNombre', 'plan',
+             'marcas', 'inicio', 'fin', 'estado', 'completa'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.inicio == request.time
+        && request.resource.data.estado == 'en_curso'
+        && request.resource.data.marcas.size() == 0
+        && request.resource.data.plan.size() <= 100;
+      allow update: if enEmpresa(empresaId)
+        && resource.data.uid == request.auth.uid
+        && resource.data.estado == 'en_curso'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['marcas', 'estado', 'completa', 'fin'])
+        && request.resource.data.marcas.size() <= 100;
+      allow delete: if esGestor(empresaId);
+    }
+
+    // Incidentes: los crea el guardia (abiertos); solo la gestión los revisa.
+    match /empresas/{empresaId}/incidentes/{id} {
+      allow read: if esGestor(empresaId) || esMio(empresaId);
+      allow create: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['uid', 'nombre', 'puestoId', 'puestoNombre', 'tipo',
+             'gravedad', 'descripcion', 'fotos', 'video', 'pos', 'estado', 'notaGestion', 'creadoEn'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.estado == 'abierto'
+        && request.resource.data.tipo in ['robo', 'intrusion', 'agresion', 'incendio', 'accidente', 'dano', 'sospechoso', 'otro']
+        && request.resource.data.gravedad in ['baja', 'media', 'alta']
+        && request.resource.data.descripcion.size() <= 2000
+        && request.resource.data.fotos.size() <= 4;
+      allow update: if esGestor(empresaId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'notaGestion', 'revisadoEn'])
+        && request.resource.data.estado in ['abierto', 'revisado', 'cerrado'];
+      allow delete: if esGestor(empresaId);
+    }
+
+    // Alertas de pánico / ayuda: las crea el guardia; la gestión las atiende;
+    // el guardia solo puede cancelar la suya (falsa alarma).
+    match /empresas/{empresaId}/alertas/{id} {
+      allow read: if esGestor(empresaId) || esMio(empresaId);
+      allow create: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['uid', 'nombre', 'telefono', 'puestoNombre', 'tipo',
+             'pos', 'estado', 'creadoEn'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.estado == 'activa'
+        && request.resource.data.tipo in ['panico', 'ayuda'];
+      allow update: if (esGestor(empresaId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'atendidaPor', 'atendidaEn', 'nota'])
+            && request.resource.data.estado in ['atendida', 'cancelada'])
+        || (enEmpresa(empresaId)
+            && resource.data.uid == request.auth.uid
+            && resource.data.estado == 'activa'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+            && request.resource.data.estado == 'cancelada');
+    }
+
+    // Ubicación en vivo: un documento por guardia (id = uid). Solo la ve la gestión.
+    match /empresas/{empresaId}/ubicaciones/{uid} {
+      allow read: if esGestor(empresaId);
+      allow create, update: if enEmpresa(empresaId) && esYo(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'nombre', 'lat', 'lng', 'precision', 'puestoNombre', 'actualizadoEn'])
+        && request.resource.data.uid == uid
+        && request.resource.data.actualizadoEn == request.time;
+      allow delete: if enEmpresa(empresaId) && (esYo(uid) || esGestor(empresaId));
+    }
+
+    // Chat: un hilo por guardia (id = uid del guardia), entre él y la gestión.
+    match /empresas/{empresaId}/chats/{uid} {
+      allow read: if esGestor(empresaId) || (enEmpresa(empresaId) && esYo(uid));
+      // Gestión: puede escribir todos los campos, pero el último mensaje es suyo.
+      allow create: if esGestor(empresaId)
+        && request.resource.data.keys().hasOnly(['guardiaUid', 'guardiaNombre', 'ultimoTexto', 'ultimoDe',
+             'ultimo', 'leidoGuardia', 'leidoGestion'])
+        && request.resource.data.get('ultimoDe', 'gestion') == 'gestion';
+      allow update: if esGestor(empresaId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoTexto', 'ultimoDe', 'ultimo', 'leidoGestion'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ultimoDe'])
+            || request.resource.data.ultimoDe == 'gestion');
+      // Guardia: solo su hilo y solo los campos de su lado.
+      allow create: if enEmpresa(empresaId) && esYo(uid)
+        && request.resource.data.keys().hasOnly(['guardiaUid', 'guardiaNombre', 'ultimoTexto', 'ultimoDe',
+             'ultimo', 'leidoGuardia'])
+        && request.resource.data.guardiaUid == uid
+        && request.resource.data.get('ultimoDe', 'guardia') == 'guardia';
+      allow update: if enEmpresa(empresaId) && esYo(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['guardiaNombre', 'ultimoTexto', 'ultimoDe', 'ultimo', 'leidoGuardia'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ultimoDe'])
+            || request.resource.data.ultimoDe == 'guardia');
+    }
+
+    match /empresas/{empresaId}/chats/{uid}/mensajes/{id} {
+      allow read: if esGestor(empresaId) || (enEmpresa(empresaId) && esYo(uid));
+      allow create: if request.resource.data.keys().hasOnly(['de', 'nombre', 'lado', 'texto', 'creadoEn'])
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 1000
+        && ((request.resource.data.lado == 'guardia' && enEmpresa(empresaId) && esYo(uid))
+            || (request.resource.data.lado == 'gestion' && esGestor(empresaId)));
+      allow update, delete: if false;
     }
 
     // ---------- Catálogo público (lo ve cualquiera, sin cuenta) ----------

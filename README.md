@@ -33,7 +33,16 @@ Stack: React + Vite, Firebase (Auth, Firestore, Storage, Hosting). Idiomas: espa
 - Si se cambia `TERMINOS_VERSION` en `src/legal/index.js`, todas las personas deben aceptar de nuevo al entrar.
 - **Antes de vender, que los revise un abogado de cada país.** Datos a confirmar en `src/legal/index.js`: titular (hoy "Carlos Fontans"), ley aplicable y foro (hoy Uruguay/Montevideo). También conviene completar domicilio y datos de contacto, y revisar si hay que registrar la base de datos ante la autoridad de cada país.
 
-Todavía no: seguridad (turnos, rondas, incidentes), facturación automática, exportación completa de datos, importar chats de WhatsApp.
+**Seguridad (fase 3)**
+- **Personal** (fichas, habilitaciones con vencimiento), **puestos** (dirección, puntos de control) y **turnos** con cantidad de guardias requerida variable y control de cobertura. Sin límite de personas.
+- **Asistencia**: el guardia marca entrada y salida con hora del servidor y ubicación opcional.
+- **Rondas**: puntos de control marcados con ubicación; la gestión ve cumplidas y salteadas.
+- **Incidentes** con tipo, gravedad, fotos y video; la gestión los revisa y cierra.
+- **Ubicación en vivo**: con el seguimiento activado y la app abierta, se guarda solo la última posición de cada guardia (un documento por guardia). Mapa para dueño/admin con "hace X min". Los navegadores cortan el GPS con el celular bloqueado, sobre todo en iPhone.
+- **Chat** guardia ↔ gestión (un hilo por guardia) y **botón de pánico/ayuda** siempre visible para el guardia: crea una alerta con ubicación que la gestión ve en pantalla con aviso. No reemplaza a los servicios de emergencia (ver cláusula 36).
+- Cláusula 36 ampliada en es/pt/en; versión de términos 2026-10-14 (todos vuelven a aceptar).
+
+Todavía no: notificaciones push con la app cerrada, facturación automática, exportación completa de datos, importar chats de WhatsApp.
 
 ## Desarrollo
 
@@ -84,6 +93,8 @@ También se pueden pegar los archivos `firestore.rules` y `storage.rules` en la 
 | `empresas/{id}/zonas` | Zonas de envío (tarifa y costo real) |
 | `empresas/{id}/config/pedidos` | Contador del número de pedido |
 | `catalogos/{id}` | Copia pública y mínima del catálogo (la lee cualquiera) |
+| `empresas/{id}/personal, puestos, turnos, asistencias, rondas, incidentes` | Módulo de seguridad |
+| `empresas/{id}/alertas, ubicaciones, chats/{uid}/mensajes` | Pánico, última posición por guardia y chat |
 | `usuarios/{uid}` | Perfil: empresa, rol, nombre, idioma, activo, versión de términos aceptada |
 | `invitaciones/{email}` | Invitación pendiente al equipo (empresa y rol) |
 | `plataforma/cobro` | Datos de pago y precios que ven las empresas |
@@ -93,6 +104,8 @@ Los pedidos se cargan solo de los últimos 45 días (y los futuros) para cuidar 
 
 ## Pendiente de verificar
 
+- Seguridad: consultas del guardia deben filtrar por su uid (reglas por documento); probar con dos guardias y un admin en el simulador de reglas.
+- Las alertas de pánico solo suenan/avisan con la app de la gestión abierta (sin push).
 - Las reglas **no se probaron con el emulador** (este entorno bloquea su descarga). Probarlas antes de dar acceso a clientes: emulador local o el simulador de reglas de la consola.
 - Lo que se probó con simulaciones: cálculo de costos, descuento y devolución de stock, numeración de pedidos, importador y armado del catálogo. No se probó contra el proyecto real de Firebase.
 - El límite de 10 personas se aplica en la pantalla, no en las reglas.

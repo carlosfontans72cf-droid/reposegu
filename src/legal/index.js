@@ -4,7 +4,7 @@ import en from './en.js';
 
 // Versión de los textos legales. Si cambian de forma relevante, se sube este valor
 // y a todas las personas se les pide aceptar de nuevo al entrar.
-export const TERMINOS_VERSION = '2026-10-10';
+export const TERMINOS_VERSION = '2026-10-14';
 
 // Datos que aparecen en los textos. Se pueden cambiar acá sin tocar el resto.
 export const LEGAL = {

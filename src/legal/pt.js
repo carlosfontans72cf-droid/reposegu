@@ -260,6 +260,7 @@ export default (c) => ({
         p: [
           'A Plataforma pode oferecer módulos para outros ramos (por exemplo, segurança privada, com dados de pessoal, turnos, rondas, incidentes, fotos ou localização). Esses módulos ou funções em teste podem ter condições adicionais, que serão informadas antes do uso, e são oferecidos sem garantia de continuidade.',
           'Cada Empresa é responsável por ter a base legal, o consentimento e as informações necessárias para tratar os dados de seu pessoal, de seus clientes e de terceiros que carregar em qualquer módulo.',
+          'Módulo de segurança privada. Inclui localização (GPS), chat e botão de pânico, nestas condições: (a) a localização é coletada somente enquanto a pessoa estiver com o app aberto e o rastreamento ativado, é vista apenas pelo proprietário ou administrador da sua Empresa e só a última posição é guardada; (b) a Empresa deve informar seu pessoal e obter os consentimentos ou bases legais exigidos pela lei de cada país, e não usar a localização para fins diferentes da operação e da segurança; (c) o botão de pânico e os alertas são um apoio adicional, não um serviço de emergência nem de monitoramento: dependem da conexão, do GPS, do dispositivo e de que alguém da Empresa veja o alerta, não garantimos sua entrega nem seu atendimento e, diante de perigo real, é preciso ligar para os serviços de emergência locais; (d) as mensagens, fotos e vídeos são de responsabilidade de quem os envia e da Empresa, que deve guardá-los ou apagá-los conforme a lei aplicável.',
         ],
       },
       {

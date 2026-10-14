@@ -35,7 +35,8 @@ service firebase.storage {
           (request.resource.contentType.matches('image/.*') && request.resource.size < 5 * 1024 * 1024)
           || (request.resource.contentType.matches('video/.*') && request.resource.size < 50 * 1024 * 1024)
         );
-      allow delete: if carpeta != 'marca' && esEquipo(empresaId);
+      allow delete: if carpeta != 'marca' && esEquipo(empresaId)
+        && perfil().rol in ['dueno', 'admin'];
     }
   }
 }

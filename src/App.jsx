@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
 import { estadoSuscripcion } from './lib/suscripcion';
@@ -21,6 +22,16 @@ import Clientes from './pages/Clientes';
 import Zonas from './pages/Zonas';
 import Importar from './pages/Importar';
 import Mas from './pages/Mas';
+import Turnos from './pages/seg/Turnos';
+import Puestos from './pages/seg/Puestos';
+import Personal from './pages/seg/Personal';
+import Asistencia from './pages/seg/Asistencia';
+import Incidentes from './pages/seg/Incidentes';
+import Rondas from './pages/seg/Rondas';
+import Chat from './pages/seg/Chat';
+// El mapa (Leaflet) pesa bastante: se baja solo cuando se abre.
+const MapaVivo = lazy(() => import('./pages/seg/MapaVivo'));
+import MasSeg from './pages/seg/Mas';
 import CatalogoPublico from './pages/CatalogoPublico';
 import Legal from './pages/Legal';
 import AceptarTerminos from './pages/AceptarTerminos';
@@ -59,6 +70,7 @@ function Privada() {
 
   const esGestor = perfil.rol === 'dueno' || perfil.rol === 'admin';
   const esPasteleria = !esSuper && empresa.vertical === 'pasteleria';
+  const esSeguridad = !esSuper && empresa.vertical === 'seguridad';
 
   return (
     <Routes>
@@ -72,6 +84,25 @@ function Privada() {
           <>
             <Route index element={<Inicio />} />
             {esGestor && <Route path="equipo" element={<Equipo />} />}
+            {esSeguridad && (
+              <>
+                <Route path="chat" element={<Chat esGestor={esGestor} />} />
+                <Route path="incidentes" element={<Incidentes esGestor={esGestor} />} />
+                {esGestor ? (
+                  <>
+                    <Route path="chat/:uid" element={<Chat esGestor />} />
+                    <Route path="turnos" element={<Turnos />} />
+                    <Route path="mapa" element={<Suspense fallback={<Cargando />}><MapaVivo /></Suspense>} />
+                    <Route path="personal" element={<Personal />} />
+                    <Route path="puestos" element={<Puestos />} />
+                    <Route path="asistencia" element={<Asistencia />} />
+                    <Route path="mas" element={<MasSeg />} />
+                  </>
+                ) : (
+                  <Route path="rondas" element={<Rondas />} />
+                )}
+              </>
+            )}
             {esPasteleria && (
               <>
                 <Route path="pedidos" element={<Pedidos />} />

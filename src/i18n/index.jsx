@@ -5,11 +5,14 @@ import en from './en';
 import pastelEs from './pastel.es';
 import pastelPt from './pastel.pt';
 import pastelEn from './pastel.en';
+import segEs from './seg.es';
+import segPt from './seg.pt';
+import segEn from './seg.en';
 
 const DICT = {
-  es: { ...es, ...pastelEs },
-  pt: { ...pt, ...pastelPt },
-  en: { ...en, ...pastelEn },
+  es: { ...es, ...pastelEs, ...segEs },
+  pt: { ...pt, ...pastelPt, ...segPt },
+  en: { ...en, ...pastelEn, ...segEn },
 };
 const CLAVE = 'idioma';
 

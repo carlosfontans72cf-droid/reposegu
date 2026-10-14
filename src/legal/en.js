@@ -260,6 +260,7 @@ export default (c) => ({
         p: [
           'The Platform may offer modules for other industries (for example, private security, with staff data, shifts, rounds, incidents, photos or location). Those modules or features in testing may have additional conditions, which will be disclosed before use, and are offered with no guarantee of continuity.',
           'Each Company is responsible for having the legal basis, consent and information needed to process the data of its staff, its customers and third parties that it loads into any module.',
+          'Private security module. It includes location (GPS), chat and a panic button, under these conditions: (a) location is collected only while the person has the app open with tracking turned on, is visible only to the owner or administrator of their Company, and only the latest position is stored; (b) the Company must inform its staff and obtain the consents or legal bases required by the law of each country, and must not use location for purposes other than operations and safety; (c) the panic button and alerts are an additional aid, not an emergency or monitoring service: they depend on the connection, GPS, the device and someone at the Company seeing the alert, we do not guarantee delivery or response, and in real danger the local emergency services must be called; (d) messages, photos and videos are the responsibility of whoever uploads them and of the Company, which must keep or delete them as required by applicable law.',
         ],
       },
       {

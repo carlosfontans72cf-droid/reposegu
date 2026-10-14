@@ -6,6 +6,7 @@ import { aNumero, estadoStock, formatearCantidad } from '../lib/costos';
 import { formatoFechaHora, inicioDelDia, mismoDia, useDinero } from '../lib/formato';
 import { estadoSuscripcion } from '../lib/suscripcion';
 import DatosPago from '../components/DatosPago';
+import InicioSeg from './seg/Inicio';
 import { aFechaPedido, saldoDe } from './Pedidos';
 
 const ACTIVOS = ['nuevo', 'confirmado', 'preparacion', 'listo'];
@@ -20,17 +21,16 @@ export default function Inicio() {
 
   return (
     <>
-      <h1>{t('home.hello', { nombre: perfil.nombre })}</h1>
-      <p className="suave">
-        {t(`role.${perfil.rol}`)} · {t(`vertical.${empresa.vertical}`)}
-      </p>
-
       {esPasteleria ? (
-        <Panel esGestor={veCobro} />
+        <>
+          <h1>{t('home.hello', { nombre: perfil.nombre })}</h1>
+          <p className="suave">
+            {t(`role.${perfil.rol}`)} · {t(`vertical.${empresa.vertical}`)}
+          </p>
+          <Panel esGestor={veCobro} />
+        </>
       ) : (
-        <section className="tarjeta">
-          <p>{t('home.soonSecurity')}</p>
-        </section>
+        <InicioSeg esGestor={veCobro} />
       )}
 
       {veCobro && (

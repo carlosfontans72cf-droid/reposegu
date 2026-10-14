@@ -1,6 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { DatosProvider } from '../data/DatosProvider';
+import { SeguridadProvider } from '../data/SeguridadProvider';
+import AlertaGlobal from './seg/AlertaGlobal';
+import BotonSOS from './seg/BotonSOS';
+import Seguimiento from './seg/Seguimiento';
 import { useI18n } from '../i18n';
 import { estadoSuscripcion } from '../lib/suscripcion';
 import CatalogoSync from './CatalogoSync';
@@ -14,6 +18,7 @@ export default function Layout() {
   const esSuper = perfil.rol === 'superadmin';
   const esPasteleria = !esSuper && empresa?.vertical === 'pasteleria';
   const esGestor = perfil.rol === 'dueno' || perfil.rol === 'admin';
+  const esSeguridad = !esSuper && empresa?.vertical === 'seguridad';
   const sus = estadoSuscripcion(empresa);
   const color = empresa?.marca?.colorPrimario || COLOR_BASE;
   const logo = empresa?.marca?.logoUrl;
@@ -33,6 +38,22 @@ export default function Layout() {
       ['/productos', 'nav.products'],
       ['/stock', 'nav.stock'],
       ['/mas', 'nav.more'],
+    ];
+  } else if (esSeguridad && esGestor) {
+    enlaces = [
+      ['/', 'nav.home'],
+      ['/turnos', 'seg.nav.shifts'],
+      ['/mapa', 'seg.nav.map'],
+      ['/chat', 'seg.nav.chat'],
+      ['/mas', 'nav.more'],
+    ];
+  } else if (esSeguridad) {
+    enlaces = [
+      ['/', 'nav.home'],
+      ['/rondas', 'seg.nav.rounds'],
+      ['/incidentes', 'seg.nav.incidents'],
+      ['/chat', 'seg.nav.chat'],
+      ['/ajustes', 'nav.settings'],
     ];
   } else if (esGestor) {
     enlaces = [
@@ -81,9 +102,17 @@ export default function Layout() {
         ))}
       </nav>
       {esPasteleria && <CatalogoSync />}
+      {esSeguridad && esGestor && <AlertaGlobal />}
+      {esSeguridad && !esGestor && (
+        <>
+          <BotonSOS />
+          <Seguimiento />
+        </>
+      )}
     </div>
   );
 
   // Los datos de la pastelería se escuchan una sola vez para todas las pantallas.
+  if (esSeguridad) return <SeguridadProvider>{contenido}</SeguridadProvider>;
   return esPasteleria ? <DatosProvider>{contenido}</DatosProvider> : contenido;
 }
