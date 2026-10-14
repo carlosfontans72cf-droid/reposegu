@@ -80,22 +80,6 @@ function PanelGuardia() {
   return (
     <>
       <h1>{t('home.hello', { nombre: perfil.nombre })}</h1>
-      {(puestos.length === 0 || guardias.length === 0 || turnos.length === 0) && (
-        <section className="tarjeta">
-          <h2>{t('seg.start.title')}</h2>
-          <ol className="pasos">
-            <li>
-              <Link to="/puestos">{t('seg.start.posts')}</Link> {puestos.length > 0 && '✓'}
-            </li>
-            <li>
-              <Link to="/equipo">{t('seg.start.guards')}</Link> {guardias.length > 0 && '✓'}
-            </li>
-            <li>
-              <Link to="/turnos">{t('seg.start.shifts')}</Link> {turnos.length > 0 && '✓'}
-            </li>
-          </ol>
-        </section>
-      )}
       <p className="suave">{t('seg.me.subtitle')}</p>
 
       <section className={`tarjeta jornada ${enCurso ? 'activa' : ''}`}>
@@ -210,6 +194,22 @@ function PanelGestor() {
   return (
     <>
       <h1>{t('home.hello', { nombre: perfil.nombre })}</h1>
+      {(puestos.length === 0 || guardias.length === 0 || turnos.length === 0) && (
+        <section className="tarjeta">
+          <h2>{t('seg.start.title')}</h2>
+          <ol className="pasos">
+            <li>
+              <Link to="/puestos">{t('seg.start.posts')}</Link> {puestos.length > 0 && '✓'}
+            </li>
+            <li>
+              <Link to="/equipo">{t('seg.start.guards')}</Link> {guardias.length > 0 && '✓'}
+            </li>
+            <li>
+              <Link to="/turnos">{t('seg.start.shifts')}</Link> {turnos.length > 0 && '✓'}
+            </li>
+          </ol>
+        </section>
+      )}
       <p className="suave">
         {t(`role.${perfil.rol}`)} · {t('vertical.seguridad')}
       </p>
