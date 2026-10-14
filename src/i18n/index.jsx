@@ -5,14 +5,17 @@ import en from './en';
 import pastelEs from './pastel.es';
 import pastelPt from './pastel.pt';
 import pastelEn from './pastel.en';
+import accEs from './acceso.es';
+import accPt from './acceso.pt';
+import accEn from './acceso.en';
 import segEs from './seg.es';
 import segPt from './seg.pt';
 import segEn from './seg.en';
 
 const DICT = {
-  es: { ...es, ...pastelEs, ...segEs },
-  pt: { ...pt, ...pastelPt, ...segPt },
-  en: { ...en, ...pastelEn, ...segEn },
+  es: { ...es, ...pastelEs, ...segEs, ...accEs },
+  pt: { ...pt, ...pastelPt, ...segPt, ...accPt },
+  en: { ...en, ...pastelEn, ...segEn, ...accEn },
 };
 const CLAVE = 'idioma';
 

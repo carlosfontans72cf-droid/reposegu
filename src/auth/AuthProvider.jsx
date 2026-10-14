@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useI18n } from '../i18n';
+import { esEmailAcceso } from '../lib/acceso.js';
 
 const Ctx = createContext(null);
 
@@ -18,7 +19,8 @@ export function AuthProvider({ children }) {
     () =>
       onAuthStateChanged(auth, (u) => {
         setUser(u);
-        setVerificado(Boolean(u?.emailVerified));
+        // Las cuentas por código no tienen email real: no hay nada que verificar.
+        setVerificado(Boolean(u?.emailVerified) || esEmailAcceso(u?.email));
         if (!u) {
           setPerfil(null);
           setEmpresa(null);
@@ -68,8 +70,9 @@ export function AuthProvider({ children }) {
     if (!u) return false;
     await u.reload();
     await u.getIdToken(true);
-    setVerificado(u.emailVerified);
-    return u.emailVerified;
+    const ok = u.emailVerified || esEmailAcceso(u.email);
+    setVerificado(ok);
+    return ok;
   }, []);
 
   const cargando =

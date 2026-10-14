@@ -52,6 +52,20 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.empresaId == request.resource.data.empresaId
         && get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.rol == request.resource.data.rol;
 
+      // Alta de una cuenta con nombre y código (sin email real), creada por el dueño o administrador.
+      // La persona acepta los términos al primer ingreso. Solo el dueño crea administradores.
+      allow create: if signedIn() && request.auth.uid != uid
+        && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo',
+             'acceso', 'creadoPor', 'creadoEn'])
+        && request.resource.data.acceso == 'codigo'
+        && request.resource.data.activo == true
+        && request.resource.data.creadoPor == request.auth.uid
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.email.matches('^[a-z0-9.-]+@acceso\\.invalid$')
+        && request.resource.data.rol in ['admin', 'empleado']
+        && (request.resource.data.rol == 'empleado' || rolEn(request.resource.data.empresaId, ['dueno']))
+        && rolEn(request.resource.data.empresaId, ['dueno', 'admin']);
+
       // Cada persona edita solo su nombre e idioma, y acepta los términos vigentes.
       allow update: if signedIn() && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'idioma', 'terminosVersion', 'terminosEn']);
@@ -152,6 +166,11 @@ service cloud.firestore {
       allow update: if enEmpresa(empresaId)
         && request.resource.data.keys().hasOnly(['ultimo'])
         && request.resource.data.ultimo == resource.data.ultimo + 1;
+    }
+
+    // Accesos con código: guardan el código vigente para poder reenviarlo. Solo la gestión.
+    match /empresas/{empresaId}/accesos/{uid} {
+      allow read, create, update, delete: if esGestor(empresaId);
     }
 
     // ---------- Módulos de seguridad (todo cuelga de la empresa) ----------

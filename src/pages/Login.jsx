@@ -8,12 +8,16 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useI18n } from '../i18n';
+import { credencialesDeAcceso, esEmailAcceso, formatearCodigo } from '../lib/acceso.js';
 import { Aviso, AvisoTerminos, Campo, PieLegal, SelectorIdioma } from '../components/ui';
 
 export default function Login() {
   const { t, lang } = useI18n();
-  const [modo, setModo] = useState('login'); // login | signup | reset
-  const [nombre, setNombre] = useState('');
+  // El enlace que se manda por WhatsApp abre directo "entrar con código" con el nombre cargado.
+  const params = new URLSearchParams(window.location.search);
+  const [modo, setModo] = useState(params.get('acceso') ? 'codigo' : 'login'); // login | codigo | signup | reset
+  const [nombre, setNombre] = useState(params.get('n') || '');
+  const [codigo, setCodigo] = useState('');
   const [email, setEmail] = useState('');
   const [clave, setClave] = useState('');
   const [error, setError] = useState('');
@@ -34,9 +38,29 @@ export default function Login() {
     try {
       auth.languageCode = lang; // los emails de Firebase salen en el idioma elegido
       const correo = email.trim();
-      if (modo === 'login') {
+      if (modo === 'codigo') {
+        const cred = credencialesDeAcceso(nombre, codigo);
+        if (!cred) {
+          setError(t('access.login.error'));
+          return;
+        }
+        try {
+          await signInWithEmailAndPassword(auth, cred.email, cred.clave);
+        } catch (e) {
+          const c = e?.code || '';
+          setError(
+            c === 'auth/invalid-credential' || c === 'auth/user-not-found' || c === 'auth/wrong-password'
+              ? t('access.login.error')
+              : mensajeError(e),
+          );
+        }
+      } else if (modo === 'login') {
         await signInWithEmailAndPassword(auth, correo, clave);
       } else if (modo === 'signup') {
+        if (esEmailAcceso(correo)) {
+          setError(t('auth.err.invalid-email'));
+          return;
+        }
         const cred = await createUserWithEmailAndPassword(auth, correo, clave);
         await updateProfile(cred.user, { displayName: nombre.trim() });
         await sendEmailVerification(cred.user);
@@ -64,7 +88,30 @@ export default function Login() {
       </div>
       <form className="tarjeta formulario" onSubmit={enviar}>
         <h1>{t('app.name')}</h1>
-        <h2>{modo === 'signup' ? t('auth.signup') : modo === 'reset' ? t('auth.forgot') : t('auth.login')}</h2>
+        <h2>
+          {modo === 'codigo' ? t('access.login.title') : modo === 'signup' ? t('auth.signup') : modo === 'reset' ? t('auth.forgot') : t('auth.login')}
+        </h2>
+
+        {modo === 'codigo' && (
+          <>
+            <p className="suave">{t('access.login.help')}</p>
+            <Campo etiqueta={t('access.login.name')}>
+              <input value={nombre} onChange={(e) => setNombre(e.target.value)} required autoComplete="username" maxLength={80} />
+            </Campo>
+            <Campo etiqueta={t('access.login.code')}>
+              <input
+                value={codigo}
+                onChange={(e) => setCodigo(formatearCodigo(e.target.value).slice(0, 11))}
+                required
+                autoComplete="current-password"
+                autoCapitalize="characters"
+                spellCheck={false}
+                inputMode="text"
+                placeholder="ABCD-EFGHJK"
+              />
+            </Campo>
+          </>
+        )}
 
         {modo === 'signup' && (
           <Campo etiqueta={t('auth.name')}>
@@ -72,11 +119,13 @@ export default function Login() {
           </Campo>
         )}
 
-        <Campo etiqueta={t('auth.email')}>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-        </Campo>
+        {modo !== 'codigo' && (
+          <Campo etiqueta={t('auth.email')}>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          </Campo>
+        )}
 
-        {modo !== 'reset' && (
+        {modo !== 'reset' && modo !== 'codigo' && (
           <Campo etiqueta={t('auth.password')} ayuda={modo === 'signup' ? t('auth.passwordHint') : undefined}>
             <input
               type="password"
@@ -100,6 +149,9 @@ export default function Login() {
         <div className="enlaces">
           {modo === 'login' && (
             <>
+              <button type="button" className="boton texto" onClick={() => cambiar('codigo')}>
+                {t('access.login.link')}
+              </button>
               <button type="button" className="boton texto" onClick={() => cambiar('signup')}>
                 {t('auth.noAccount')}
               </button>
@@ -110,7 +162,7 @@ export default function Login() {
           )}
           {modo !== 'login' && (
             <button type="button" className="boton texto" onClick={() => cambiar('login')}>
-              {t('auth.haveAccount')}
+              {modo === 'codigo' ? t('access.login.email') : t('auth.haveAccount')}
             </button>
           )}
         </div>

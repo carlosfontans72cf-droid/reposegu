@@ -907,3 +907,7 @@ fieldset.receta legend {
 /* El botón SOS flotante no tapa el último contenido */
 .principal, main { padding-bottom: max(7.5rem, env(safe-area-inset-bottom)); }
 .pasos { margin: 0.4rem 0 0; padding-left: 0; list-style: none; display: grid; gap: 0.5rem; }
+.codigo { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.15rem; letter-spacing: 0.08em; font-weight: 700; }
+a.boton { display: inline-flex; align-items: center; text-decoration: none; }
+a.boton:not(.secundario):not(.texto) { color: #fff; background: #1f8f4e; border-color: #1f8f4e; }
+a.boton:not(.secundario):not(.texto):hover { filter: brightness(1.08); }

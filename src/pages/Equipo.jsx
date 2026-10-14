@@ -5,6 +5,9 @@ import { useAuth } from '../auth/AuthProvider';
 import { useI18n } from '../i18n';
 import { LIMITE_EQUIPO } from '../lib/paises';
 import { Aviso, Campo, useCopiar } from '../components/ui';
+import { crearAcceso, renovarCodigo } from '../lib/accesoServicios';
+import { formatearCodigo } from '../lib/acceso.js';
+import { telefonoInternacional } from '../lib/seguridad.js';
 
 export default function Equipo() {
   const { perfil, empresa } = useAuth();
@@ -17,6 +20,13 @@ export default function Equipo() {
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState('empleado');
   const [mensaje, setMensaje] = useState({ tipo: 'ok', texto: '' });
+  const [accesos, setAccesos] = useState({});
+  const [nombreNuevo, setNombreNuevo] = useState('');
+  const [rolNuevo, setRolNuevo] = useState('empleado');
+  const [telNuevo, setTelNuevo] = useState('');
+  const [creando, setCreando] = useState(false);
+  const [recienCreado, setRecienCreado] = useState(null);
+  const [visibles, setVisibles] = useState({});
 
   useEffect(
     () =>
@@ -33,6 +43,17 @@ export default function Equipo() {
       onSnapshot(
         query(collection(db, 'invitaciones'), where('empresaId', '==', empresa.id)),
         (s) => setInvitaciones(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+        () => {},
+      ),
+    [empresa.id],
+  );
+
+  // Códigos de acceso vigentes (solo los ve la gestión).
+  useEffect(
+    () =>
+      onSnapshot(
+        collection(db, 'empresas', empresa.id, 'accesos'),
+        (s) => setAccesos(Object.fromEntries(s.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))),
         () => {},
       ),
     [empresa.id],
@@ -80,6 +101,64 @@ export default function Equipo() {
     }
   };
 
+  const urlAcceso = (nombre) => `${window.location.origin}/?acceso=1&n=${encodeURIComponent(nombre)}`;
+  const mensajeAcceso = (a) =>
+    t('access.msg', { nombre: a.nombre, empresa: empresa.nombre, url: urlAcceso(a.nombre), codigo: formatearCodigo(a.codigo) });
+  const enlaceWhatsApp = (texto, tel) => {
+    const num = telefonoInternacional(tel, empresa.pais);
+    return `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
+  };
+
+  const crear = async (ev) => {
+    ev.preventDefault();
+    avisar('ok', '');
+    if (lleno) return avisar('error', t('team.limitReached'));
+    setCreando(true);
+    try {
+      const r = await crearAcceso({
+        empresa,
+        quien: perfil.id,
+        nombre: nombreNuevo,
+        rol: esDueno ? rolNuevo : 'empleado',
+        telefono: telNuevo,
+      });
+      setRecienCreado({ id: r.uid, nombre: nombreNuevo.trim(), codigo: r.codigo, telefono: telNuevo });
+      setNombreNuevo('');
+      setTelNuevo('');
+      avisar('ok', t('access.created', { nombre: nombreNuevo.trim() }));
+    } catch (e) {
+      if (e?.code === 'auth/email-already-in-use') avisar('error', t('access.create.dup'));
+      else if (e?.code === 'acceso/nombre-invalido') avisar('error', t('access.create.invalidName'));
+      else falla(e);
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  const nuevoCodigo = async (m) => {
+    const a = accesos[m.id];
+    if (!a || !window.confirm(t('access.newCodeConfirm'))) return;
+    try {
+      await renovarCodigo({ empresa, acceso: a });
+      setVisibles((v) => ({ ...v, [m.id]: true }));
+      avisar('ok', t('access.newCodeDone'));
+    } catch (e) {
+      falla(e);
+    }
+  };
+
+  // Botones para enviar el acceso: WhatsApp y copiar mensaje.
+  const botonesAcceso = (a) => (
+    <>
+      <a className="boton" href={enlaceWhatsApp(mensajeAcceso(a), a.telefono)} target="_blank" rel="noreferrer">
+        {t('access.sendWa')}
+      </a>
+      <button type="button" className="boton secundario" onClick={() => copiar(`acc-${a.id}`, mensajeAcceso(a))}>
+        {copiado === `acc-${a.id}` ? t('access.copied') : t('access.copy')}
+      </button>
+    </>
+  );
+
   const mensajeInvitacion = (inv) =>
     t('team.inviteMsg', { empresa: empresa.nombre, email: inv.id, url: window.location.origin });
 
@@ -90,6 +169,16 @@ export default function Equipo() {
         {limitado ? t('team.count', { n: activos, max: maximo }) : t('team.countFree', { n: activos })}
       </p>
       <Aviso tipo={mensaje.tipo}>{mensaje.texto}</Aviso>
+
+      {recienCreado && (
+        <section className="tarjeta">
+          <h2>{recienCreado.nombre}</h2>
+          <p>
+            {t('access.code')}: <strong className="codigo">{formatearCodigo(recienCreado.codigo)}</strong>
+          </p>
+          <div className="acciones">{botonesAcceso(recienCreado)}</div>
+        </section>
+      )}
 
       <section className="tarjeta">
         <h2>{t('team.members')}</h2>
@@ -103,10 +192,24 @@ export default function Equipo() {
                   <strong>{m.nombre}</strong>
                   {yo && <span className="suave"> ({t('team.you')})</span>}
                   <div className="suave">
-                    {m.email} · {t(`role.${m.rol}`)}
+                    {m.acceso === 'codigo' ? t('access.byCode') : m.email} · {t(`role.${m.rol}`)}
                     {m.activo === false && ` · ${t('team.inactive')}`}
                   </div>
                 </div>
+                {accesos[m.id] && !yo && (esDueno || m.rol !== 'admin') && (
+                  <div className="acciones">
+                    {visibles[m.id] && (
+                      <span className="codigo">{formatearCodigo(accesos[m.id].codigo)}</span>
+                    )}
+                    <button type="button" className="boton texto" onClick={() => setVisibles((v) => ({ ...v, [m.id]: !v[m.id] }))}>
+                      {visibles[m.id] ? t('access.hide') : t('access.show')}
+                    </button>
+                    {botonesAcceso(accesos[m.id])}
+                    <button type="button" className="boton texto" onClick={() => nuevoCodigo(m)}>
+                      {t('access.newCode')}
+                    </button>
+                  </div>
+                )}
                 {gestionable && (
                   <div className="acciones">
                     <select value={m.rol} onChange={(e) => cambiar(m, { rol: e.target.value })} aria-label={t('team.inviteRole')}>
@@ -135,6 +238,9 @@ export default function Equipo() {
                   <div className="suave">{t(`role.${inv.rol}`)}</div>
                 </div>
                 <div className="acciones">
+                  <a className="boton" href={enlaceWhatsApp(mensajeInvitacion(inv), '')} target="_blank" rel="noreferrer">
+                    {t('access.sendWa')}
+                  </a>
                   <button className="boton secundario" onClick={() => copiar(inv.id, mensajeInvitacion(inv))}>
                     {copiado === inv.id ? t('common.copied') : t('team.copyLink')}
                   </button>
@@ -147,6 +253,29 @@ export default function Equipo() {
           </ul>
         </section>
       )}
+
+      <form className="tarjeta formulario" onSubmit={crear}>
+        <h2>{t('access.create.title')}</h2>
+        <p className="suave">{t('access.create.help')}</p>
+        <Campo etiqueta={t('access.create.name')} ayuda={t('access.create.nameHelp')}>
+          <input value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} required maxLength={80} />
+        </Campo>
+        <Campo etiqueta={t('access.create.phone')} ayuda={t('access.create.phoneHelp')}>
+          <input type="tel" value={telNuevo} onChange={(e) => setTelNuevo(e.target.value)} inputMode="tel" />
+        </Campo>
+        {esDueno && (
+          <Campo etiqueta={t('team.inviteRole')}>
+            <select value={rolNuevo} onChange={(e) => setRolNuevo(e.target.value)}>
+              <option value="empleado">{t('role.empleado')}</option>
+              <option value="admin">{t('role.admin')}</option>
+            </select>
+          </Campo>
+        )}
+        <button className="boton" disabled={lleno || creando}>
+          {t('access.create.btn')}
+        </button>
+        {lleno && <p className="suave">{t('team.limitReached')}</p>}
+      </form>
 
       <form className="tarjeta formulario" onSubmit={invitar}>
         <h2>{t('team.invite')}</h2>
