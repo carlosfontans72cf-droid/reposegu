@@ -31,7 +31,7 @@ async function conAuthSecundario(fn) {
 
 // Crea la cuenta (email interno + código como clave) y su perfil, ficha y registro de acceso.
 // Devuelve { uid, codigo, email }. Si el nombre ya existe en la empresa, lanza auth/email-already-in-use.
-export async function crearAcceso({ empresa, quien, nombre, rol, telefono, idioma }) {
+export async function crearAcceso({ empresa, quien, nombre, rol, cargo, telefono, idioma }) {
   const nombreLimpio = String(nombre || '').trim().slice(0, 80);
   const codigo = generarCodigo(empresa.id);
   const email = emailDeAcceso(nombreLimpio, codigo);
@@ -41,6 +41,7 @@ export async function crearAcceso({ empresa, quien, nombre, rol, telefono, idiom
     throw e;
   }
   const tel = String(telefono || '').trim().slice(0, 30);
+  const cargoLimpio = String(cargo || '').trim().slice(0, 40);
   const uid = await conAuthSecundario(async (authSec) => {
     const cred = await createUserWithEmailAndPassword(authSec, email, normalizarCodigo(codigo));
     try {
@@ -49,6 +50,7 @@ export async function crearAcceso({ empresa, quien, nombre, rol, telefono, idiom
         empresaId: empresa.id,
         rol: rol === 'admin' ? 'admin' : 'empleado',
         nombre: nombreLimpio,
+        ...(cargoLimpio ? { cargo: cargoLimpio } : {}),
         email,
         idioma: idioma || empresa.idiomaDefecto || 'es',
         activo: true,
@@ -59,6 +61,7 @@ export async function crearAcceso({ empresa, quien, nombre, rol, telefono, idiom
       lote.set(doc(db, 'empresas', empresa.id, 'accesos', cred.user.uid), {
         nombre: nombreLimpio,
         rol: rol === 'admin' ? 'admin' : 'empleado',
+        cargo: cargoLimpio,
         codigo,
         telefono: tel,
         creadoPor: quien,

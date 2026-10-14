@@ -56,7 +56,9 @@ service cloud.firestore {
       // La persona acepta los términos al primer ingreso. Solo el dueño crea administradores.
       allow create: if signedIn() && request.auth.uid != uid
         && request.resource.data.keys().hasOnly(['empresaId', 'rol', 'nombre', 'email', 'idioma', 'activo',
-             'acceso', 'creadoPor', 'creadoEn'])
+             'acceso', 'creadoPor', 'creadoEn', 'cargo'])
+        && (!('cargo' in request.resource.data)
+            || (request.resource.data.cargo is string && request.resource.data.cargo.size() <= 40))
         && request.resource.data.acceso == 'codigo'
         && request.resource.data.activo == true
         && request.resource.data.creadoPor == request.auth.uid
@@ -73,7 +75,7 @@ service cloud.firestore {
       // El dueño gestiona a los demás: activar, desactivar y cambiar rol (nunca a otro dueño).
       allow update: if signedIn() && rolEn(resource.data.empresaId, ['dueno'])
         && resource.data.rol != 'dueno'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rol', 'activo'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rol', 'activo', 'cargo'])
         && request.resource.data.rol in ['admin', 'empleado'];
     }
 
@@ -113,7 +115,9 @@ service cloud.firestore {
       // El dueño y el administrador editan solo datos del negocio, nunca el plan.
       allow update: if signedIn() && rolEn(empresaId, ['dueno', 'admin'])
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['nombre', 'whatsapp', 'marca', 'idiomaDefecto', 'zonaHoraria']);
+             .hasOnly(['nombre', 'whatsapp', 'marca', 'idiomaDefecto', 'zonaHoraria', 'cargos'])
+        && (!('cargos' in request.resource.data)
+            || (request.resource.data.cargos is list && request.resource.data.cargos.size() <= 20));
 
       // El superadmin gestiona plan, estado y vencimientos.
       allow update: if isSuper();

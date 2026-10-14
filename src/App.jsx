@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
 import { estadoSuscripcion } from './lib/suscripcion';
@@ -35,6 +35,7 @@ import MasSeg from './pages/seg/Mas';
 import CatalogoPublico from './pages/CatalogoPublico';
 import Legal from './pages/Legal';
 import AceptarTerminos from './pages/AceptarTerminos';
+import SesionAbierta from './pages/SesionAbierta';
 import { TERMINOS_VERSION } from './legal/index.js';
 
 export default function App() {
@@ -56,8 +57,18 @@ export default function App() {
 function Privada() {
   const { user, verificado, perfil, empresa, cargando } = useAuth();
 
+  // Un enlace de acceso con código abierto en un navegador que ya tenía otra sesión:
+  // se avisa una sola vez (al cerrar esa sesión y entrar con el código, ya no vuelve a salir).
+  const [conflicto, setConflicto] = useState(null);
+  useEffect(() => {
+    if (cargando) return;
+    const conEnlace = new URLSearchParams(window.location.search).has('acceso');
+    setConflicto((c) => (c === null ? conEnlace && Boolean(user) : user ? c : false));
+  }, [cargando, user]);
+
   if (cargando) return <Cargando />;
   if (!user) return <Login />;
+  if (conflicto) return <SesionAbierta onSeguir={() => setConflicto(false)} />;
   if (!verificado) return <Verificar />;
   if (!perfil) return <Onboarding />;
   if (perfil.activo === false) return <Desactivado />;

@@ -911,3 +911,6 @@ fieldset.receta legend {
 a.boton { display: inline-flex; align-items: center; text-decoration: none; }
 a.boton:not(.secundario):not(.texto) { color: #fff; background: #1f8f4e; border-color: #1f8f4e; }
 a.boton:not(.secundario):not(.texto):hover { filter: brightness(1.08); }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0; margin: 0.4rem 0; }
+.chip { display: inline-flex; align-items: center; gap: 0.1rem; padding: 0.15rem 0.2rem 0.15rem 0.7rem; border: 1px solid var(--borde, #d9cfc7); border-radius: 999px; background: #fff; }
+.chip .boton { padding: 0.1rem 0.5rem; min-height: 0; }

@@ -75,3 +75,14 @@ export function credencialesDeAcceso(nombre, codigo) {
   const email = emailDeAcceso(nombre, codigo);
   return email ? { email, clave: normalizarCodigo(codigo) } : null;
 }
+
+// Cargos que se pueden asignar al crear un acceso. Son solo una etiqueta: los permisos
+// los define el rol (administrador o personal). La empresa los puede editar.
+export const ADMIN = '__admin';
+export function cargosDe(empresa, t) {
+  const guardados = Array.isArray(empresa?.cargos) ? empresa.cargos.filter((c) => typeof c === 'string' && c.trim()) : [];
+  if (guardados.length) return guardados;
+  return empresa?.vertical === 'seguridad'
+    ? [t('access.cargo.guard'), t('access.cargo.driver')]
+    : [t('role.empleado'), t('access.cargo.courier')];
+}
