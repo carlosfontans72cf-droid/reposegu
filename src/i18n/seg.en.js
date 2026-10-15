@@ -45,6 +45,7 @@ export default {
   'seg.gps.asking': 'Turn on location to share it…',
   'seg.gps.on': 'Live location on',
   'seg.gps.denied': 'Location blocked: allow it in the browser so you show on the map.',
+  'seg.gps.sendFail': 'Your location could not be sent to the company. Check your connection; it retries automatically.',
   'seg.gps.error': 'Could not get location (no signal?).',
   'seg.gps.unsupported': 'This device does not support location.',
 
@@ -240,4 +241,8 @@ export default {
   'seg.map.fresh.reciente': 'recent',
   'seg.map.fresh.perdida': 'no signal',
   'seg.map.fresh.sin': 'no data',
+  'seg.gps.sent': 'Location sent at {hora}',
+  'seg.gps.sendFail': 'Could not send your location. Check your connection; it retries on its own.',
+  'seg.gps.sending': 'Sending your location…',
+  'seg.map.noLoc': 'On duty, no location yet',
 };

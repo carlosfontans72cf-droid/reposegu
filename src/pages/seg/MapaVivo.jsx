@@ -15,7 +15,7 @@ import { Aviso, Cargando } from '../../components/ui';
 // posición; los que tienen una alerta activa se marcan en rojo.
 export default function MapaVivo() {
   const { empresa } = useAuth();
-  const { alertasActivas, puestos } = useSeg();
+  const { alertasActivas, puestos, asistencias } = useSeg();
   const { t, lang } = useI18n();
   const [params, setParams] = useSearchParams();
   const elegido = params.get('uid');
@@ -41,19 +41,25 @@ export default function MapaVivo() {
     [empresa.id],
   );
 
+  // El mapa se arma recién cuando termina de cargar la lista: antes la pantalla muestra
+  // "Cargando" y el contenedor todavía no existe.
+  const listo = lista !== null || error;
   useEffect(() => {
-    if (!caja.current || mapa.current) return undefined;
+    if (!listo || !caja.current || mapa.current) return undefined;
     mapa.current = L.map(caja.current, { zoomControl: true }).setView([-34.9, -56.16], 12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap',
     }).addTo(mapa.current);
     capa.current = L.layerGroup().addTo(mapa.current);
+    const t = setTimeout(() => mapa.current?.invalidateSize(), 50);
     return () => {
+      clearTimeout(t);
       mapa.current?.remove();
       mapa.current = null;
+      encuadrado.current = false;
     };
-  }, []);
+  }, [listo]);
 
   const enAlerta = new Set(alertasActivas.map((a) => a.uid));
 
@@ -73,12 +79,15 @@ export default function MapaVivo() {
     for (const u of lista) {
       const f = frescuraUbicacion(u.actualizadoEn, ahora);
       const clase = enAlerta.has(u.uid) ? 'alerta' : f;
+      if (Number.isFinite(u.precision) && u.precision > 60) {
+        L.circle([u.lat, u.lng], { radius: Math.min(u.precision, 5000), weight: 1, opacity: 0.5, fillOpacity: 0.08, interactive: false }).addTo(capa.current);
+      }
       L.marker([u.lat, u.lng], {
         icon: L.divIcon({ className: `pin pin-${clase}`, html: `<span>${iniciales(u.nombre)}</span>`, iconSize: [34, 34] }),
         title: u.nombre,
         zIndexOffset: enAlerta.has(u.uid) ? 1000 : 0,
       })
-        .bindTooltip(`${u.nombre} · ${haceTiempo(u.actualizadoEn, ahora, lang)}`)
+        .bindTooltip(`${u.nombre} · ${haceTiempo(u.actualizadoEn, ahora, lang)}${Number.isFinite(u.precision) ? ` · ±${u.precision} m` : ''}`)
         .addTo(capa.current);
       puntos.push([u.lat, u.lng]);
     }
@@ -91,6 +100,8 @@ export default function MapaVivo() {
   }, [lista, puestos, ahora, elegido, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (lista === null && !error) return <Cargando />;
+  const conUbicacion = new Set((lista || []).map((u) => u.uid));
+  const sinUbicacion = (asistencias || []).filter((a) => a.abierta && !conUbicacion.has(a.uid));
   const ordenada = [...(lista || [])].sort((a, b) => Number(enAlerta.has(b.uid)) - Number(enAlerta.has(a.uid)) || a.nombre.localeCompare(b.nombre));
 
   return (
@@ -99,7 +110,25 @@ export default function MapaVivo() {
       <p className="suave">{t('seg.map.help')}</p>
       <Aviso tipo="error">{error ? t('common.error') : ''}</Aviso>
       <div ref={caja} className="mapa-vivo" role="region" aria-label={t('seg.map.title')} />
-      {lista?.length === 0 && !error && <p className="suave">{t('seg.map.empty')}</p>}
+      {lista?.length === 0 && !error && sinUbicacion.length === 0 && <p className="suave">{t('seg.map.empty')}</p>}
+      {sinUbicacion.length > 0 && (
+        <section className="tarjeta">
+          <h2>{t('seg.map.noLoc')}</h2>
+          <ul className="lista">
+            {sinUbicacion.map((a) => (
+              <li key={a.id}>
+                <div>
+                  <strong>{a.nombre}</strong>
+                  <div className="suave">{a.puestoNombre || '—'}</div>
+                </div>
+                <Link className="boton secundario" to={`/chat/${a.uid}`}>
+                  {t('seg.nav.chat')}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {ordenada.map((u) => {
         const f = frescuraUbicacion(u.actualizadoEn, ahora);
         return (
@@ -115,6 +144,7 @@ export default function MapaVivo() {
                   <div className="suave">
                     {u.puestoNombre || '—'} · <span className={`frescura ${f}`}>{t(`seg.map.fresh.${f}`)}</span> ·{' '}
                     {haceTiempo(u.actualizadoEn, ahora, lang)}
+                    {Number.isFinite(u.precision) && u.precision > 60 ? ` · ±${u.precision} m` : ''}
                   </div>
                 </div>
               </div>

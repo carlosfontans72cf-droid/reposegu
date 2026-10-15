@@ -17,7 +17,8 @@ test('distancia: Montevideo centro a 100 m aprox', () => {
 test('ubicación: primera lectura se guarda, imprecisas no', () => {
   const p = { lat: -34.9, lng: -56.19, precision: 20 };
   assert.equal(s.debeGuardarUbicacion(null, p, 1000), true);
-  assert.equal(s.debeGuardarUbicacion(null, { ...p, precision: 900 }, 1000), false);
+  assert.equal(s.debeGuardarUbicacion(null, { ...p, precision: 900 }, 1000), true, 'impreciso pero útil (notebook, bajo techo)');
+  assert.equal(s.debeGuardarUbicacion(null, { ...p, precision: 9000 }, 1000), false);
   assert.equal(s.debeGuardarUbicacion(null, { lat: NaN, lng: 1 }, 1000), false);
 });
 

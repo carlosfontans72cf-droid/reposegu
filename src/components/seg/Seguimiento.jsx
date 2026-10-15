@@ -12,7 +12,8 @@ import { debeGuardarUbicacion } from '../../lib/seguridad.js';
 export default function Seguimiento() {
   const { perfil, empresa } = useAuth();
   const { asistenciaAbierta, alertasActivas } = useSeg();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const [envio, setEnvio] = useState(null); // { ok, en } del último intento de enviar
   const [estado, setEstado] = useState('inactivo'); // inactivo | pidiendo | activo | denegado | error | nosoporta
   const previa = useRef(null);
   const activo = Boolean(asistenciaAbierta) || alertasActivas.length > 0;
@@ -32,14 +33,17 @@ export default function Seguimiento() {
     yaHuboSeguimiento.current = true;
     const id = navigator.geolocation.watchPosition(
       (p) => {
-        setEstado('activo');
         const nueva = { lat: p.coords.latitude, lng: p.coords.longitude, precision: p.coords.accuracy };
         const ahora = Date.now();
         if (!debeGuardarUbicacion(previa.current, nueva, ahora)) return;
         previa.current = { ...nueva, en: ahora };
-        guardarUbicacion(empresa.id, perfil, nueva, { puestoNombre: puestoRef.current }).catch(() => {
-          previa.current = null; // reintenta en la próxima lectura
-        });
+        // "Activa" recién cuando la gestión pudo recibirla; si falla, se avisa y se reintenta.
+        guardarUbicacion(empresa.id, perfil, nueva, { puestoNombre: puestoRef.current })
+          .then(() => setEstado('activo'))
+          .catch(() => {
+            previa.current = null;
+            setEstado('fallo');
+          });
       },
       (e) => setEstado(e.code === 1 ? 'denegado' : 'error'),
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 },
@@ -52,6 +56,7 @@ export default function Seguimiento() {
     if (activo || !yaHuboSeguimiento.current) return;
     yaHuboSeguimiento.current = false;
     previa.current = null;
+    setEnvio(null);
     setEstado('inactivo');
     borrarUbicacion(empresa.id, perfil.id).catch(() => {});
   }, [activo, empresa.id, perfil.id]);
@@ -83,9 +88,15 @@ export default function Seguimiento() {
   if (!activo) return null;
   const aviso = {
     pidiendo: ['pidiendo', t('seg.gps.asking')],
-    activo: ['activo', t('seg.gps.on')],
+    activo:
+      envio?.ok === false
+        ? ['error', t('seg.gps.sendFail')]
+        : envio?.ok
+          ? ['activo', t('seg.gps.sent', { hora: new Date(envio.en).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' }) })]
+          : ['pidiendo', t('seg.gps.sending')],
     denegado: ['denegado', t('seg.gps.denied')],
     error: ['error', t('seg.gps.error')],
+    fallo: ['error', t('seg.gps.sendFail')],
     nosoporta: ['error', t('seg.gps.unsupported')],
     inactivo: ['pidiendo', t('seg.gps.asking')],
   }[estado];

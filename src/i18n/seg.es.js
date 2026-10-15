@@ -45,6 +45,7 @@ export default {
   'seg.gps.asking': 'Activá la ubicación para compartirla…',
   'seg.gps.on': 'Ubicación en vivo activa',
   'seg.gps.denied': 'Ubicación bloqueada: permitila en el navegador para que te vean en el mapa.',
+  'seg.gps.sendFail': 'No se pudo enviar tu ubicación a la empresa. Revisá la conexión; se reintenta sola.',
   'seg.gps.error': 'No se pudo obtener la ubicación (¿sin señal?).',
   'seg.gps.unsupported': 'Este aparato no permite ubicación.',
 
@@ -240,4 +241,8 @@ export default {
   'seg.map.fresh.reciente': 'reciente',
   'seg.map.fresh.perdida': 'sin señal',
   'seg.map.fresh.sin': 'sin dato',
+  'seg.gps.sent': 'Ubicación enviada a las {hora}',
+  'seg.gps.sendFail': 'No se pudo enviar tu ubicación. Revisá tu conexión; se reintenta sola.',
+  'seg.gps.sending': 'Enviando tu ubicación…',
+  'seg.map.noLoc': 'En servicio, sin ubicación todavía',
 };

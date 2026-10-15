@@ -21,7 +21,7 @@ export const AJUSTE_UBICACION = {
   minimoMs: 30 * 1000, // nunca más de una escritura cada 30 segundos
   movimientoM: 15, // si se movió menos que esto, no vale la pena escribir...
   latidoMs: 3 * MIN, // ...pero se avisa cada 3 minutos para mostrar que sigue en línea
-  precisionMaxM: 200, // lecturas más imprecisas que esto se descartan
+  precisionMaxM: 5000, // más impreciso que esto (antena lejana) no sirve; entre 200 m y 5 km se guarda con su margen de error
 };
 
 // Decide si una lectura nueva del GPS se guarda. Cuida las escrituras (costo) y la batería.
