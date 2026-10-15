@@ -172,6 +172,20 @@ service cloud.firestore {
         && request.resource.data.ultimo == resource.data.ultimo + 1;
     }
 
+    // Chat interno del equipo (pastelería): un canal para todos. Sin edición; solo la gestión borra.
+    match /empresas/{empresaId}/equipoChat/{id} {
+      allow read: if enEmpresa(empresaId);
+      allow create: if enEmpresa(empresaId)
+        && request.resource.data.keys().hasOnly(['de', 'nombre', 'texto', 'creadoEn'])
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.creadoEn == request.time
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 1000;
+      allow update: if false;
+      allow delete: if esGestor(empresaId);
+    }
+
     // Accesos con código: guardan el código vigente para poder reenviarlo. Solo la gestión.
     match /empresas/{empresaId}/accesos/{uid} {
       allow read, create, update, delete: if esGestor(empresaId);

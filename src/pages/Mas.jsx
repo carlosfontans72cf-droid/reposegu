@@ -10,6 +10,7 @@ export default function Mas() {
   const esGestor = perfil.rol === 'dueno' || perfil.rol === 'admin';
 
   const enlaces = [
+    ['/chat', 'nav.teamChat', 'more.teamChatHelp', true],
     ['/clientes', 'nav.clients', 'more.clientsHelp', true],
     ['/zonas', 'nav.zones', 'more.zonesHelp', esGestor],
     ['/importar', 'nav.import', 'more.importHelp', esGestor],

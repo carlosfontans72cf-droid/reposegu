@@ -5,7 +5,7 @@ import { useI18n } from '../i18n';
 import { enlaceMapa, formatoFechaHora, inicioDelDia, mismoDia, useDinero } from '../lib/formato';
 import { aNumero } from '../lib/costos';
 import { aInputFecha } from '../lib/suscripcion';
-import { enlaceWhatsapp } from '../lib/paises';
+import { armarMensajePedido, enlaceWhatsappCliente } from '../lib/mensajePedido';
 import { cambiarEstado, editarPedido, registrarCobro } from '../lib/servicios';
 import { Aviso, Cargando } from '../components/ui';
 import { aFechaPedido, saldoDe } from './Pedidos';
@@ -126,7 +126,17 @@ function TarjetaEnvio({ pedido: p }) {
   const saldo = saldoDe(p);
   const entregado = p.estado === 'entregado';
   const mapa = enlaceMapa(p.direccion);
-  const wa = enlaceWhatsapp(p.clienteTelefono);
+  const wa = enlaceWhatsappCliente(
+    p.clienteTelefono,
+    empresa.pais,
+    armarMensajePedido(t, p, {
+      empresa,
+      fechaTxt: formatoFechaHora(aFechaPedido(p), lang),
+      totalTxt: dinero(p.total),
+      saldoTxt: dinero(saldo),
+      saldo,
+    }),
+  );
 
   const salio = () =>
     correr(async () => {

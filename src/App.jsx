@@ -36,6 +36,7 @@ import CatalogoPublico from './pages/CatalogoPublico';
 import Legal from './pages/Legal';
 import AceptarTerminos from './pages/AceptarTerminos';
 import SesionAbierta from './pages/SesionAbierta';
+import ChatEquipo from './pages/ChatEquipo';
 import { esEmailAcceso } from './lib/acceso.js';
 import { TERMINOS_VERSION } from './legal/index.js';
 
@@ -118,6 +119,7 @@ function Privada() {
             )}
             {esPasteleria && (
               <>
+                <Route path="chat" element={<ChatEquipo />} />
                 <Route path="pedidos" element={<Pedidos />} />
                 <Route path="entregas" element={<Entregas />} />
                 <Route path="productos" element={<Productos />} />

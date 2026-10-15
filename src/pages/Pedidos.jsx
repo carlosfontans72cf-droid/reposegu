@@ -8,7 +8,8 @@ import { useI18n } from '../i18n';
 import { aInputFechaHora, deInputFechaHora, enlaceMapa, formatoFechaHora, inicioDelDia, mismoDia, useDinero } from '../lib/formato';
 import { aNumero, consumoDePedido, costoReceta, faltantesDeStock, formatearCantidad, totalesPedido } from '../lib/costos';
 import { clave } from '../lib/importar';
-import { enlaceWhatsapp, soloDigitos } from '../lib/paises';
+import { soloDigitos } from '../lib/paises';
+import { armarMensajePedido, enlaceWhatsappCliente } from '../lib/mensajePedido';
 import { cambiarEstado, crearPedido, editarPedido, registrarCobro } from '../lib/servicios';
 import { Aviso, Campo, Cargando } from '../components/ui';
 
@@ -124,15 +125,15 @@ export function TarjetaPedido({ pedido: p, compacta = false }) {
     });
   };
 
-  const avisar = enlaceWhatsapp(
+  const avisar = enlaceWhatsappCliente(
     p.clienteTelefono,
-    t('orders.clientMsg', {
-      nombre: p.clienteNombre,
-      n: p.numero,
-      estado: t(`orders.state.${p.estado}`).toLowerCase(),
-      fecha: formatoFechaHora(fecha, lang),
-      total: dinero(p.total),
-      saldo: dinero(saldo),
+    empresa.pais,
+    armarMensajePedido(t, p, {
+      empresa,
+      fechaTxt: formatoFechaHora(fecha, lang),
+      totalTxt: dinero(p.total),
+      saldoTxt: dinero(saldo),
+      saldo,
     }),
   );
   const mapa = enlaceMapa(p.direccion);
